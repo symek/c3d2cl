@@ -1,0 +1,3 @@
+[submodule "external/ezc3d"]
+	path = external/ezc3d
+	url = https://github.com/pyomeca/ezc3d.git
