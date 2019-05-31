@@ -4,5 +4,5 @@ project(c3d2cl)
 set(CMAKE_CXX_STANDARD 14)
 
 add_subdirectory(external/ezc3d)
-add_executable(c3d2cl src/main.cpp)
+add_executable(c3d2cl src/c3d2cl.cpp)
 target_link_libraries(c3d2cl ezc3d)
