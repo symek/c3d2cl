@@ -3,6 +3,17 @@ project(c3d2cl)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_subdirectory(external/ezc3d)
+list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
+list( APPEND CMAKE_PREFIX_PATH "$ENV{HT}/cmake")
+
+find_package( Houdini REQUIRED )
+
+message (STATUS "Houdini HDK: ${Houdini_VERSION}")
+
 add_executable(c3d2cl src/c3d2cl.cpp)
-target_link_libraries(c3d2cl ezc3d)
+
+add_subdirectory(external/ezc3d)
+
+#target_link_libraries(c3d2cl )
+target_link_libraries(c3d2cl Houdini ezc3d)
+
