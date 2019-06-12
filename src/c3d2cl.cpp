@@ -1,25 +1,59 @@
-#include <iostream>
 #include "ezc3d.h"
 #include "CL/CL_Clip.h"
+#include <iostream>
 
-int main() {
-    std::cout << "Hello, World!" << std::endl;
-    ezc3d::c3d c3d("external/ezc3d/example/markers_analogs.c3d");
+int main(int argc, const char* argv[]) {
 
-    // Add two new points to the c3d (one filled with zeros, the other one with data)
-    c3d.point("new_point1"); // Add empty
-    std::vector<ezc3d::DataNS::Frame> frames_point;
-    ezc3d::DataNS::Points3dNS::Points pts_new;
-    ezc3d::DataNS::Points3dNS::Point pt_new;
-    pt_new.x(1.0);
-    pt_new.y(2.0);
-    pt_new.z(3.0);
-    pts_new.point(pt_new);
-    for (size_t i=0; i<c3d.data().nbFrames(); ++i){
-        ezc3d::DataNS::Frame frame;
-        frame.add(pts_new);
-        frames_point.push_back(frame);
+    if (argc < 2) {
+        std::cout << "> c3d2cl file.c3d [file.clip]" << "\n";
+        return 1;
     }
-    c3d.point("new_point2", frames_point); // Add the previously created
+
+    ezc3d::c3d c3d(argv[1]);
+    const size_t num_frames  = c3d.header().nbFrames();
+    const size_t num_points  = c3d.header().nb3dPoints();
+    const size_t samples     = c3d.header().frameRate();
+    const size_t start_frame = c3d.header().firstFrame();
+    const size_t end_frame   = c3d.header().lastFrame();
+
+    CL_Clip clip(num_frames);
+    clip.setTrackCapacity(num_points);
+    clip.setSampleRate(samples);
+    clip.setStart(start_frame);
+    clip.setTrackLength((int)(end_frame-start_frame+1));
+
+    const auto point_labels = c3d.parameters().group("POINT").parameter("LABELS").valuesAsString();
+
+    for (size_t channel=0, label=0; channel<num_points; ++channel, ++label) {
+        const auto point = c3d.data().frame(start_frame).points().point(channel);
+
+        if (point.isempty()) {
+            std::cout << "Skipping empty point..." << point_labels[label] << "\n" ;
+            continue;
+        }
+
+        std::string channel_name{point_labels[label]};
+        CL_Track *trackx = clip.addTrack("point_tx" +  std::to_string(channel));
+        CL_Track *tracky = clip.addTrack("point_ty" +  std::to_string(channel));
+        CL_Track *trackz = clip.addTrack("point_tz" +  std::to_string(channel));
+
+        fpreal *datax = trackx->getData();
+        fpreal *datay = tracky->getData();
+        fpreal *dataz = trackz->getData();
+
+        const auto frames = c3d.data().frames();
+
+        size_t frame_index = start_frame;
+        for(const auto & frame: frames) {
+            datax[frame_index] = frame.points().point(channel).x();
+            datay[frame_index] = frame.points().point(channel).y();
+            dataz[frame_index] = frame.points().point(channel).z();
+            frame_index++;
+        }
+    }
+
+    if (argc > 2) {
+        clip.save(argv[2]);
+    }
     return 0;
 }
